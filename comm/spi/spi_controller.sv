@@ -42,9 +42,9 @@ module spi_controller #(
     end : sclk_generator
 
     // chip select encoding
-    genvar i;
-        for (i = 0; i < NUM_WORKERS; i++) begin
-            assign cs_n[i] = (worker_sel == i) ? 1'b0 : 1'b1;
-        end
+    always_comb begin : cs_n_enc
+        cs_n = '1;
+        
+    end : cs_n_enc
 
 endmodule
