@@ -10,6 +10,10 @@ interface spi_bus_if #(
     modport worker       (input sclk, cs_n, mosi, output miso);
 endinterface;
 
+/*
+(receive from fpga) axis_rx -> mosi -> external module/device
+external module/device -> miso -> axis_tx (transmit to rest of fpga)
+*/
 module spi_controller #(
     parameter int CLK_DIV     = 4,    // SCLK = clk / CLK_DIV
     parameter int DATA_WIDTH  = 8,    // bits per transfer
@@ -18,11 +22,11 @@ module spi_controller #(
     input  logic                             clk,
     input  logic                             rst_n,
     input  logic [$clog2(NUM_WORKERS+1)-1:0] worker_sel,
-    
-
-
     // SPI bus
-    spi_bus_if.controller                    spi_bus
+    spi_bus_if.controller                    spi_bus,
+    // axi stream bus
+    axi_stream_if.tx                         miso_axis,
+    axi_stream_if.rx                         mosi_axis
 );
     // clock division to generate sclk
     clk_div spi_clk_div #(CLK_DIV) 
@@ -32,11 +36,13 @@ module spi_controller #(
         .clk_out(sclk)
     );
 
-    // chip select encoding
-    always_comb begin : cs_n_enc
-        cs_n = '1;
-        
-    end : cs_n_enc
+    // chip select one-hot encoding
+    one_hot #(.N(NUM_WORKERS), .INVERT(1))
+    (
+        .in_data(worker_sel),
+        .one_hot_out(cs_n)
+    );
+
 
 endmodule
 
