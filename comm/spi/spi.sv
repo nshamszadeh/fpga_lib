@@ -73,7 +73,7 @@ module spi_controller #(
     logic [DATA_WIDTH-1:0] mosi_shift_reg, miso_shift_reg;
     
     // present state register
-    always_ff @(posedge clk) begin : state_register
+    always_ff @(posedge sclk) begin : state_register
         if (!rst_n) begin
             state <= IDLE;
         end
@@ -99,7 +99,7 @@ module spi_controller #(
     end : next_state_logic
 
     // output logic
-
+    always_ff @(posedge sclk)
 
 endmodule
 
