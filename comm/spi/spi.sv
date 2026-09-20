@@ -35,6 +35,7 @@ PRESENT — handing the received word off, gating the next frame.
     mosi_axis.tready stays 0 here too — you can't start the next frame until this word is consumed, since there's no FIFO to hold a second one.
     On miso_axis.tvalid && miso_axis.tready: → IDLE.
 
+    FSM design solves potential stalling issues between miso and mosi lines by transitioning IDLE to SHIFT on only mosi handshake signals and transitioning PRESENT to IDLE on only miso handshake signals
 */
 module spi_controller #(
     parameter int CLK_DIV     = 4,    // SCLK = clk / CLK_DIV
@@ -64,6 +65,40 @@ module spi_controller #(
         .in_data(worker_sel),
         .one_hot_out(cs_n)
     );
+
+    // axi stream state machine
+    typedef enum logic [1:0] {IDLE = 2'b00, SHIFT, PRESENT} state_t;
+    state_t state, next_state;
+    logic [$clog2(DATA_WIDTH+1)-1:0] shift_counter;
+    logic [DATA_WIDTH-1:0] mosi_shift_reg, miso_shift_reg;
+    
+    // present state register
+    always_ff @(posedge clk) begin : state_register
+        if (!rst_n) begin
+            state <= IDLE;
+        end
+        else begin
+            state <= next_state;
+        end
+    end: state_register
+
+    // next state logic
+    always_comb begin : next_state_logic
+        case (state)
+            IDLE: begin
+                if (mosi_axis.tready & mosi_axis.tvalid) next_state = SHIFT;
+            end 
+            SHIFT: begin
+                if (shift_counter == (DATA_WIDTH-1)) next_state = PRESENT;     
+            end
+            PRESENT: begin
+                if (miso_axis.tvalid & miso_axis.tready) next_state = IDLE;
+            end
+            default:
+        endcase
+    end : next_state_logic
+
+    // output logic
 
 
 endmodule
