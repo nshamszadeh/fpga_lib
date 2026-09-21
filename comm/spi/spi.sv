@@ -51,6 +51,13 @@ module spi_controller #(
     axi_stream_if.tx                         miso_axis,
     axi_stream_if.rx                         mosi_axis
 );
+    // axi stream state machine
+    typedef enum logic [1:0] {IDLE = 2'b00, SHIFT, PRESENT} state_t;
+    state_t state, next_state;
+    logic [$clog2(DATA_WIDTH+1)-1:0] shift_counter;
+    logic [DATA_WIDTH-1:0] mosi_shift_reg, miso_shift_reg;
+    logic [NUM_WORKERS-1:0] cs_n_reg;
+    
     // clock division to generate sclk
     clk_div spi_clk_div #(CLK_DIV) 
     (
@@ -63,17 +70,11 @@ module spi_controller #(
     one_hot #(.N(NUM_WORKERS), .INVERT(1))
     (
         .in_data(worker_sel),
-        .one_hot_out(cs_n)
+        .one_hot_out(cs_n_reg)
     );
-
-    // axi stream state machine
-    typedef enum logic [1:0] {IDLE = 2'b00, SHIFT, PRESENT} state_t;
-    state_t state, next_state;
-    logic [$clog2(DATA_WIDTH+1)-1:0] shift_counter;
-    logic [DATA_WIDTH-1:0] mosi_shift_reg, miso_shift_reg;
     
     // present state register
-    always_ff @(posedge sclk) begin : state_register
+    always_ff @(posedge clk) begin : state_register
         if (!rst_n) begin
             state <= IDLE;
         end
@@ -89,17 +90,54 @@ module spi_controller #(
                 if (mosi_axis.tready & mosi_axis.tvalid) next_state = SHIFT;
             end 
             SHIFT: begin
-                if (shift_counter == (DATA_WIDTH-1)) next_state = PRESENT;     
+                if (shift_counter == (DATA_WIDTH-1))     next_state = PRESENT;     
             end
             PRESENT: begin
                 if (miso_axis.tvalid & miso_axis.tready) next_state = IDLE;
             end
-            default:
+            default: begin
+                next_state = IDLE;
+            end
         endcase
     end : next_state_logic
 
     // output logic
-    always_ff @(posedge sclk)
+    /*
+     * miso_axis.tready, mosi_axis.tvalid, cs_n, 
+     */
+    always_ff @(posedge clk) begin
+        if (!rst_n) begin
+            miso_axis.tvalid <= 1'b0;
+            mosi_axis.tready <= 1'b0;
+            shift_counter    <=   '0;
+        end
+        else begin
+            case (next_state)
+                IDLE: begin
+                    miso_axis.tvalid <= 1'b1;
+                    cs_n             <=   '1;
+                    // mosi_axis.tready <= 1'b0; 
+                end
+                SHIFT: begin
+                    mosi_axis.tready <= 1'b0;
+                    cs_n <= cs_n_reg;
+                    
+                end
+                PRESENT: begin
+                    
+                end
+                default: begin
+                    
+                end 
+            endcase
+        end
+    end
+
+    // datapath
+    // shift_counter, mosi_shift_reg, miso_shift_reg
+    always_ff @(posedge clk) begin : shift_reg
+
+    end : shift_reg
 
 endmodule
 
