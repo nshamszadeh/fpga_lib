@@ -107,27 +107,30 @@ module spi_controller #(
      */
     always_ff @(posedge clk) begin
         if (!rst_n) begin
-            miso_axis.tvalid <= 1'b0;
-            mosi_axis.tready <= 1'b0;
-            shift_counter    <=   '0;
+            miso_axis.tvalid         <= 1'b0;
+            mosi_axis.tready         <= 1'b0;
+            shift_counter            <=   '0;
         end
         else begin
             case (next_state)
                 IDLE: begin
                     miso_axis.tvalid <= 1'b1;
                     cs_n             <=   '1;
-                    // mosi_axis.tready <= 1'b0; 
+                    mosi_axis.tready <= 1'b0; 
                 end
                 SHIFT: begin
                     mosi_axis.tready <= 1'b0;
-                    cs_n <= cs_n_reg;
-                    
+                    cs_n             <= cs_n_reg;
                 end
                 PRESENT: begin
-                    
+                    cs_n             <=   '1;
+                    miso_axis.tvalid <= 1'b1;
+                    mosi_axis.tready <= 1'b0;
                 end
                 default: begin
-                    
+                    miso_axis.tvalid <= 1'b0;
+                    mosi_axis.tready <= 1'b0;
+                    cs_n             <=   '1;
                 end 
             endcase
         end
@@ -136,7 +139,9 @@ module spi_controller #(
     // datapath
     // shift_counter, mosi_shift_reg, miso_shift_reg
     always_ff @(posedge clk) begin : shift_reg
-
+        if (!rst_n) begin
+            
+        end
     end : shift_reg
 
 endmodule
