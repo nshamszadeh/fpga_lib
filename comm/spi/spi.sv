@@ -109,7 +109,6 @@ module spi_controller #(
         if (!rst_n) begin
             miso_axis.tvalid         <= 1'b0;
             mosi_axis.tready         <= 1'b0;
-            shift_counter            <=   '0;
         end
         else begin
             case (next_state)
@@ -140,6 +139,9 @@ module spi_controller #(
     // shift_counter, mosi_shift_reg, miso_shift_reg
     always_ff @(posedge clk) begin : shift_reg
         if (!rst_n) begin
+            shift_counter <= '0;
+        end
+        else begin
             
         end
     end : shift_reg
