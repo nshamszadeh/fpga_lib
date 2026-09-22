@@ -6,7 +6,7 @@ module clk_div #(
     output logic clk_out
 );
     logic [CLK_DIV-1:0] clk_div_count = '0;
-    always_ff @(clk_in) begin
+    always_ff @(posedege clk_in) begin
         if (!rst_n) begin
             clk_div_count <= '0;
             clk_out       <= '0;  
