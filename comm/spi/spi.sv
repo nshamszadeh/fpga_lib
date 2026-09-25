@@ -1,3 +1,5 @@
+import util_pkg::shift_dir_t;
+
 interface spi_bus_if #(
     parameter int NUM_WORKERS = 1
 );
@@ -52,11 +54,15 @@ module spi_controller #(
     axi_stream_if.rx                         mosi_axis
 );
     // axi stream state machine
-    typedef enum logic [1:0] {IDLE = 2'b00, SHIFT, PRESENT} state_t;
-    state_t state, next_state;
+    typedef enum logic [1:0] {IDLE = 2'b00, SHIFT = 2'b01, PRESENT = 2'b10} state_t;
+    state_t                          state;
+    state_t                          next_state;
     logic [$clog2(DATA_WIDTH+1)-1:0] shift_counter;
-    logic [DATA_WIDTH-1:0] mosi_shift_reg, miso_shift_reg;
-    logic [NUM_WORKERS-1:0] cs_n_reg;
+    logic [DATA_WIDTH-1:0]           mosi_shift_reg;
+    logic [DATA_WIDTH-1:0]           miso_shift_reg;
+    logic [NUM_WORKERS-1:0]          cs_n_reg;
+    logic                            mosi_load;
+    logic                            shift_en;
     
     // clock division to generate sclk
     clk_div spi_clk_div #(CLK_DIV) 
@@ -137,14 +143,14 @@ module spi_controller #(
 
     // datapath
     // shift_counter, mosi_shift_reg, miso_shift_reg
-    always_ff @(posedge clk) begin : shift_reg
+    always_ff @(posedge clk) begin : shift_counter
         if (!rst_n) begin
             shift_counter <= '0;
         end
-        else begin
-            
+        else if ()
+            shift_counter <= shift_counter + 1; // should loop back to 0
         end
-    end : shift_reg
+    end : shift_counter
 
 endmodule
 
